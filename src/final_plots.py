@@ -4,73 +4,65 @@ from math import pi
 
 def final_plot(self,iter,image_path,method):
 	if method == 1:
-		ltype = '-x'
-		color = 'b'
+		image_path = image_path+'/method1'
 	elif method == 5:
-		ltype = '-v'
-		color = 'r'
+		image_path = image_path+'/method5'
 	else:
 		print("No such method")
 		return
-	
-	# plot E, AE
+
+	ltype = '-x'
+	color = 'b'
+	# plot E
 	f, (ax1,ax2) = plt.subplots(2,1)
 	
+	E = torch.Tensor(self.E)
 	ax1.set_yscale('symlog')
-	ax1.plot(torch.linspace(0,iter+1,iter+2),self.E,ltype,color=color)
-	ax1.set_title('Deviation from the mean')
+	ax1.plot(torch.linspace(0,iter+1,iter+2),E[:,0].numpy(),ltype,color=color)
+	ax1.set_title('E over iteration')
 	ax1.set_xlabel('Iteration')
-	ax1.set_ylabel('v')
-	plt.savefig(image_path+'/E.jpg')
+	ax1.set_ylabel('e(x)')
 
 	ax2.set_yscale('symlog')
-	ax2.plot(torch.linspace(0,iter+1,iter+2),self.AE,ltype,color=color)
-	ax2.set_xlabel('Iteration')
-	ax2.set_ylabel('V')
-	plt.savefig(image_path+'/AE.jpg')
+	ax2.plot(torch.linspace(0,iter+1,iter+2),E[:,1].numpy(),ltype,color=color)
+	ax1.set_xlabel('Iteration')
+	ax1.set_ylabel('e(t)')
 
-	# plot R, AR
+	f.savefig(image_path+'/E.jpg',bbox_inches='tight')
+
+	# plot R
 	f, (ax1,ax2) = plt.subplots(2,1)
-	
+	R = torch.Tensor(self.R)
 	ax1.set_yscale('symlog')
-	ax1.plot(torch.linspace(0,iter+1,iter+2),self.R,ltype,color=color)
-	ax1.set_title('Residuals')
+	ax1.plot(torch.linspace(0,iter+1,iter+2),R[:,0].numpy(),ltype,color=color)
+	ax1.set_title('R over iteration')
 	ax1.set_xlabel('Iteration')
-	ax1.set_ylabel('r')
-	plt.savefig(image_path+'/R.jpg')
+	ax1.set_ylabel('r(x)')
 
 	ax2.set_yscale('symlog')
-	ax2.plot(torch.linspace(0,iter+1,iter+2),self.AR,ltype,color=color)
-	ax2.set_xlabel('Iteration')
-	ax2.set_ylabel('R')
-	plt.savefig(image_path+'/AR.jpg')
+	ax2.plot(torch.linspace(0,iter+1,iter+2),R[:,1].numpy(),ltype,color=color)
+	ax1.set_xlabel('Iteration')
+	ax1.set_ylabel('r(t)')
+
+	f.savefig(image_path+'/R.jpg',bbox_inches='tight')
 
 	# plot M
 	plt.figure()
-	plt.semilogy(torch.linspace(0,iter+1,iter+2),self.M,ltype,'Color')
-	plt.semilogy([0,iter+1],[torch.linalg.vector_norm(self.noise)**2,torch.linalg.vector_norm(self.noise)**2],'k:')
+	plt.semilogy(torch.linspace(0,iter+1,iter+2),self.M,ltype,color=color)
 	plt.xlabel('Iteration')
 	plt.ylabel('var theta')
 	plt.title('Misfit')
-	plt.savefig(image_path+'/Misfit.jpg')
-
-	# plot 
-	x = torch.linspace(0,pi,self.N)
-	plt.figure()
-	# if method == 1:
-	# 	plt.plot(x,self.sol_func(x),'k-')
-	plt.plot(x,torch.matmul(self.G,self.m1),ltype,color=color)
-	plt.title('Exact solution with u(x)=1 vs Reconstruction')
-	plt.xlabel('x')
-	plt.savefig(image_path+'/Reconstruction.jpg')
+	plt.savefig(image_path+'/Misfit.jpg',bbox_inches='tight')
 
 	# plot
 	plt.figure()
-	# if method == 1:
-	# 	plt.plot(x,self.control_func(x),'k-')
-	plt.plot(x,self.m1,ltype,color=color)
+	w_exact = self.w_exact 
+	m1 = self.m1
+	plt.scatter(w_exact[0:100,0],w_exact[0:100,1], s=5, c='b', marker='o')
+	plt.scatter(m1[0:100,0],m1[0:100,1], s=5, c='r', marker='o')
 	plt.title('Reconstruction of the control')
 	plt.xlabel('x')
-	plt.savefig(image_path+'/ReconstructionOfControl.jpg')
+	plt.ylabel('t')
+	plt.savefig(image_path+'/ReconstructionOfControl.jpg',bbox_inches='tight')
 
 	return

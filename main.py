@@ -14,8 +14,8 @@ if __name__ == "__main__":
 	# set up model
 	N = 1000 # number of steps
 	Nt = 1000 # number of steps in time
-	N_control = 100
-	Nt_control = 100
+	N_control = 10
+	Nt_control = 10
 	# noiselevel = 0.01**2
 	noiselevel = 0
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
 	#initEnsemble = 'KL'; % Karhunen-Loeve expansion
 	#initEnsemble = 'random'; % Normally distributed around the mean of uexact
-	initEnsemble = 'brownian'
+	initEnsemble = 'random'
 
 	print('3. Ensemble size = %d. Setup the initial ensembles using the %s initialization...\n'%(ensembleSize,initEnsemble))
 

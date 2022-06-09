@@ -17,7 +17,7 @@ def set_up_model(self,image_path):
 	A = torch.zeros(N-1,N-1)
 	k = 1/Nt
 	h = 1/N
-	mathcal_K = 0.5
+	mathcal_K = 0.2
 	r = (mathcal_K*k)/(h**2)
 
 	for i in range(N-1):
@@ -74,7 +74,7 @@ def set_up_model(self,image_path):
 	plt.ylabel('time')
 	plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 	plt.title(r'Discrete Grid $\Omega_h,$ h= %s, k=%s'%(h,k),fontsize=24,y=1.08)
-	fig1.savefig(image_path+'/w_exact.jpg')
+	fig1.savefig(image_path+'/w_exact.jpg',bbox_inches='tight')
 
 	# compute temperature at control
 	p = torch.zeros(N_control+1,Nt_control+1)
@@ -86,11 +86,12 @@ def set_up_model(self,image_path):
 			b = torch.round(w_exact_dic['t'][j]*Nt).to(torch.int)
 			p[i,j] = u_all[a,b]
 
+	l = (N_control+1)*(Nt_control+1)
 	if noiselevel > 0:
 		gamma = noiselevel*torch.eye(Nt_control)
 		noise = distributions.MultivariateNormal(torch.zeros(Nt_control),gamma).sample()
 	else:
-		gamma = torch.eye(Nt_control+1)
+		gamma = torch.eye(l)
 		noise = torch.zeros(Nt_control+1)
 
 	observations = p+noise
@@ -115,12 +116,13 @@ def set_up_model(self,image_path):
 	clb.set_label('observations at control (u)')
 	plt.suptitle('Numerical Solution of the  Heat Equation r=%s'%(round(r,3)),fontsize=24,y=1.08)
 	fig2.tight_layout()
-	fig2.savefig(image_path+'/observations.jpg')
+	fig2.savefig(image_path+'/observations.jpg',bbox_inches='tight')
 
 	self.A = A
 	self.G = G
 	self.observations = observations
 	self.w_exact = w_exact
+	self.w_exact_dic = w_exact_dic
 	self.u_all = u_all
 	self.p = p
 	self.noise = noise

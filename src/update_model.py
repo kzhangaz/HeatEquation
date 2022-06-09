@@ -4,7 +4,7 @@ from src.update import update_mean_field
 
 def update_model(self,method,image_path):
 
-	stopping = 'discrepancy'
+	stopping = 'relative' # 'relative' or 'discrepancy'
 	# maxit = 5e3
 	maxit = 10
 

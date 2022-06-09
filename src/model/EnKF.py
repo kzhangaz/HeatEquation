@@ -3,7 +3,7 @@ from src import set_up_ensemble
 from src.update.convergence import convergence
 from src import update_model
 from src import final_plots
-from torch import zeros
+from src.predict_by_En import predict_by_En
 
 class EnKFmodel(object):
 	
@@ -17,15 +17,15 @@ class EnKFmodel(object):
 
 		self.E = []
 		self.R = []
-		self.AE = []
-		self.AR = []
+		# self.AE = []
+		# self.AR = []
 		self.M = [] # M[i] size: 1 * 1
 
 	set_up_model = set_up_model.set_up_model
 	#A,G,observations,u_exact,p,noise,gamma are set
 	# G (y = G*u): K * N
 	# p: K
-	# obsevations: K
+	# observations: K
 	# u_all: N * Nt
 	# w_exact: N_control * Nt_control
 	# noise size: K
@@ -37,6 +37,7 @@ class EnKFmodel(object):
 	# En size: N * J
 	# m1: N
 	# m2: 
+	predict_by_En = predict_by_En
 
 	convergence = convergence
 

@@ -1,4 +1,3 @@
-from unicodedata import name
 from src.HeatEquation1D import control_func1 as cf
 from src.model import EnKF
 
@@ -6,8 +5,6 @@ if __name__ == "__main__":
 	
 	# choose method: 1 for EnKF, 5 for meanfield
 	method = 1
-	# a = 0; b = math.pi
-
 	test = 0 # choose the continuous control function
 	image_path = 'src/HeatEquation1D/images'# path to save the images
 
@@ -15,14 +12,16 @@ if __name__ == "__main__":
 	sol_func = None
 
 	# set up model
-	N = 2**8 # number of steps
-	Nt = 100 # number of steps in time
-	noiselevel = 0.01**2
+	N = 1000 # number of steps
+	Nt = 1000 # number of steps in time
+	N_control = 100
+	Nt_control = 100
+	# noiselevel = 0.01**2
+	noiselevel = 0
 
-	print('1. Setup the model with (x:%d,t:%d) data and level of noise %f\n'%(N,Nt,noiselevel))
+	print('1. Setup the model with (x:%d,t:%d) data and level of noise %.3f\n'%(N,Nt,noiselevel))
 
-	thename = 'HeatEquation1D'
-	model = EnKF.EnKFmodel(thename,N*Nt,N,control_func,noiselevel,sol_func)
+	model = EnKF.EnKFmodel(N,Nt,N_control,Nt_control,control_func,noiselevel)
 	model.set_up_model(image_path)
 
 	# set up ensemble

@@ -1,7 +1,7 @@
 import os
 import glob
 
-files = glob.glob('src/1DHeatEquation/images/*.jpg')
+files = glob.glob('src/HeatEquation1D/images/*.jpg')
 
 for f in files:
     try:

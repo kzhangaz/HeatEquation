@@ -1,19 +1,19 @@
-from ExampleFromPaper import set_up_model as set_up_example
-from HeatEquation1D import set_up_model as set_up_heat1d
+from src import set_up_model
 from src import set_up_ensemble
 from src.update.convergence import convergence
 from src import update_model
 from src import final_plots
+from torch import zeros
 
 class EnKFmodel(object):
 	
-	def __init__(self,name,N,K,control_func,noiselevel,sol_func):
-		self.K = K # Dimension of the observed data y
-		self.N = N # Dimension of the control 
+	def __init__(self,N,Nt,N_control,Nt_control,control_func,noiselevel):
+		self.Nt = Nt
+		self.N = N
+		self.N_control = N_control
+		self.Nt_control = Nt_control
 		self.control_func = control_func
 		self.noiselevel = noiselevel # scalar
-		self.sol_func = sol_func
-		self.name = name
 
 		self.E = []
 		self.R = []
@@ -21,16 +21,13 @@ class EnKFmodel(object):
 		self.AR = []
 		self.M = [] # M[i] size: 1 * 1
 
-		if self.name == 'ExampleFromPaper':
-			self.set_up_model = set_up_example.set_up_model
-		elif self.name == 'HeatEquation1D':
-			self.set_up_model = set_up_heat1d.set_up_model
-
+	set_up_model = set_up_model.set_up_model
 	#A,G,observations,u_exact,p,noise,gamma are set
 	# G (y = G*u): K * N
 	# p: K
 	# obsevations: K
-	# u_exact: N
+	# u_all: N * Nt
+	# w_exact: N_control * Nt_control
 	# noise size: K
 	# gamma (cov of noise distribution):  K * K
 

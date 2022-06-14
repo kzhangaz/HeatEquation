@@ -57,8 +57,16 @@ def set_up_model(self,image_path):
 	for i in range(1,Nt+1):
 		T[:,i] = torch.matmul(A,T[:,i-1])
 
-	y = T
+	if noiselevel > 0:
+		gamma = noiselevel*torch.eye(l)
+		noise = distributions.MultivariateNormal(torch.zeros(l),gamma).sample_n(Nt+1)
+		noise = torch.t(noise)
 
+	else:
+		gamma = torch.eye(l)
+		noise = torch.zeros(l,Nt+1)
+
+	y = T + noise
 
 
 
@@ -76,16 +84,6 @@ def set_up_model(self,image_path):
 	plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 	plt.title(r'Discrete Grid $\Omega_h,$ h= %s, k=%s'%(h,k),fontsize=24,y=1.08)
 	fig1.savefig(image_path+'/w_exact.jpg',bbox_inches='tight')
-
-
-	if noiselevel > 0:
-		gamma = noiselevel*torch.eye(Nt_control)
-		noise = distributions.MultivariateNormal(torch.zeros(Nt_control),gamma).sample()
-	else:
-		gamma = torch.eye(l)
-		noise = torch.zeros(Nt_control+1)
-
-	observations = p+noise
 
 	# plot
 	fig2 = plt.figure(figsize=(12,6))

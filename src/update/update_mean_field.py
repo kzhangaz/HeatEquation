@@ -2,7 +2,7 @@ from pickle import TRUE
 from torch import mm,matmul
 from torch import linalg
 from torch import mean,FloatTensor
-from torch import isreal,real,zeros,multinomial,linspace,t
+from torch import isreal,real,zeros,multinomial,linspace,t,flatten
 from src import covmat
 from src import moments
 from src.update import update_EnKF
@@ -10,7 +10,6 @@ from src.vecmul import vecmul
 
 def update_mean_field(self,maxit,stopping,Minteracting,tfin,image_path):
 	print("running update_mean_field...")
-
 
 	time = []
 	time.append(0)
@@ -46,9 +45,12 @@ def update_mean_field(self,maxit,stopping,Minteracting,tfin,image_path):
 		if Minteracting != self.ensembleSize:
 			TempEn = zeros(self.En.size())
 
+		Gu = flatten(self.predict_by_En(self.En),start_dim=0,end_dim=1)
+
 		for j in range(self.ensembleSize):
 			# xi = noiseLevel.*randn(1,N) # mvnrnd(zeros(1,N),gamma)
-			part2 = matmul(linalg.inv(self.gamma),self.observations-matmul(self.G,self.En[:,j]))
+			part2 = matmul(linalg.inv(self.gamma),\
+				flatten(self.observations,start_dim=0,end_dim=1) - Gu[:,j])
 
 			if Minteracting == self.ensembleSize:
 				grad = dt* matmul(eig1,part2)

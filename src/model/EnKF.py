@@ -1,4 +1,4 @@
-from src import set_up_model
+from simulation import set_up_model
 from src import set_up_ensemble
 from src.update.convergence import convergence
 from src import update_model

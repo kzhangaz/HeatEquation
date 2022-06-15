@@ -1,4 +1,4 @@
-from simulation import set_up_model
+from src.simulation import set_up_model
 from src import set_up_ensemble
 from src.update.convergence import convergence
 from src import update_model
@@ -7,12 +7,9 @@ from src.predict_by_En import predict_by_En
 
 class EnKFmodel(object):
 	
-	def __init__(self,N,Nt,N_control,Nt_control,control_func,noiselevel):
+	def __init__(self,N,Nt,noiselevel):
 		self.Nt = Nt
 		self.N = N
-		self.N_control = N_control
-		self.Nt_control = Nt_control
-		self.control_func = control_func
 		self.noiselevel = noiselevel # scalar
 
 		self.E = []

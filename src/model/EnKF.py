@@ -14,19 +14,18 @@ class EnKFmodel(object):
 
 		self.E = []
 		self.R = []
-		# self.AE = []
-		# self.AR = []
 		self.M = [] # M[i] size: 1 * 1
 
 	set_up_model = set_up_model.set_up_model
-	#A,G,observations,u_exact,p,noise,gamma are set
-	# G (y = G*u): K * N
-	# p: K
-	# observations: K
-	# u_all: N * Nt
-	# w_exact: N_control * Nt_control
-	# noise size: K
-	# gamma (cov of noise distribution):  K * K
+	# l,A,T,y,theta,u,noise,gamma are set
+	# l = (N-1)^2
+	# theta = torch.tensor([mathcal_K,a,b])
+	# A: (N-1)^2 * (N-1)^2
+	# T: (N-1)^2 * Nt+1
+	# y = T + noise
+	# u: (N-1)^2 * Nt+1
+	# noise size: l * Nt+1
+	# gamma (cov of noise distribution):  l * l
 
 	set_up_ensemble = set_up_ensemble.set_up_ensemble
 	# En,initEnsemble,ensembleSize,m1,m2 are set

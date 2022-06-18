@@ -28,6 +28,8 @@ if __name__ == "__main__":
 
 	model.set_up_ensemble(ensembleSize,initEnsemble)
 
-	model.update_model(method,image_path)
+	stopping = 'relative' # 'relative' or 'discrepancy'
+	method = 1
+	model.update_model(method,image_path,stopping)
 	
 	

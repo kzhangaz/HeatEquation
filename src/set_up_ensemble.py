@@ -11,24 +11,23 @@ def set_up_ensemble(self,ensembleSize,initEnsemble):
 	#ensembleSize,initEnsemble,u_exact,N,K,A
 	self.ensembleSize = ensembleSize
 	self.initEnsemble = initEnsemble
-	w_exact = self.w_exact
-	N = self.N
-	Nt = self.Nt
-	N_control = self.N_control
-	Nt_control = self.Nt_control
-	A = self.A
+	T = self.T
+	l = self.l
+	theta = self.theta
 
-	l = (N_control+1)*(Nt_control+1)
-	En = torch.zeros(l,2,ensembleSize)
+	En = torch.zeros(l+3,ensembleSize)
 
 	if initEnsemble == 'random':
 
-		for j in range(l):
-			En[j,0,:] = torch.mean(w_exact[:,0]) * torch.ones(ensembleSize) + 0.5*torch.randn(ensembleSize)
-			En[j,1,:] = torch.mean(w_exact[:,1]) * torch.ones(ensembleSize) + 0.5*torch.randn(ensembleSize)
+		for j in range(3):
+			En[j,:] = theta[j]*torch.ones(ensembleSize) + torch.randn(ensembleSize)
+
+		for j in range(3,l):
+			En[j,:] = torch.mean(T[j,:]) * torch.ones(ensembleSize) + torch.randn(ensembleSize)
+			En[j,:] = torch.mean(T[j,:]) * torch.ones(ensembleSize) + torch.randn(ensembleSize)
 		
 		self.En = En
-		self.m1,self.m2 = moments.moments(self.En)
+		# self.m1,self.m2 = moments.moments(self.En)
 
 		return
 

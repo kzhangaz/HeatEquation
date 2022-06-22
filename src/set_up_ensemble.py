@@ -1,7 +1,5 @@
-from sympy import true
 import torch
 from src import moments
-import torch.linalg as linalg
 
 # def is_sorted(x):
 # 	sorted,_ = diag(x).sort(descending=true)
@@ -27,7 +25,8 @@ def set_up_ensemble(self,ensembleSize,initEnsemble):
 			En[j,:] = torch.mean(T[j,:]) * torch.ones(ensembleSize) + torch.randn(ensembleSize)
 		
 		self.En = En
-		# self.m1,self.m2 = moments.moments(self.En)
+		self.m1,self.m2 = moments.moments(self.En)
+		(self.theta_hat).append(self.m1[:3])
 
 		return
 

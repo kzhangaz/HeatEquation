@@ -4,13 +4,10 @@ from src.update import update_mean_field
 
 def update_model(self,method,image_path,stopping):
 
-	# maxit = 5e3
-	maxit = 10
-
 	if method == 1:
-		print('4. EnMKF solver with max number of iteration %d' % maxit)
+		print('4. EnMKF solver')
 		with timer.Timer('EnKF timer'):
-			update_EnKF.update_EnKF(self,maxit,stopping,image_path)
+			update_EnKF.update_EnKF(self,stopping,image_path)
 
 	# if method == 5:
 	# 	Minteracting = self.ensembleSize

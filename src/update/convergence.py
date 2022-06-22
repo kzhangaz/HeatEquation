@@ -1,42 +1,41 @@
 from torch import *
 import torch.linalg as linalg
-from src.predict_by_En import predict_by_En
+from src.compute_Atheta import compute_Atheta
 
-def convergence(self):
-	#En,u_exact,m1,G,p,noise,gamma
-	En = self.En # l*2*ensemblesize
-	w_exact = self.w_exact #l*2
-	m1 = mean(En,dim=2) #l*2
-	# G = self.G
-	# p = self.p
-	# noise = self.noise
+def convergence(self,iter):
+
+	En = self.En 
+	m1 = self.m1
+	noise = self.noise[:,iter]
 	# gamma = self.gamma
-	observations = self.observations # N_control+1 * Nt_control+1
+	T = self.T[:,iter]
+	theta = self.theta
 
-	e = En - m1[:,:,None] # l*2*ensembleSize
-	r = En - w_exact[:,:,None] # l*2*ensembleSize
+	Atheta = compute_Atheta(theta,self.N,self.Nt)
+	(self.theta_hat).append(m1[:3])
 
-	misfit = self.predict_by_En(En) - observations[:,:,None]
-	# N_control+1 * Nt_control+1 *ensembleSize
-	# misfit = mm(G,r) - noise[:,None]
+	e_theta = En[:3,:]-m1[:3,None]
+	e_T = En[3:,:] - m1[3:,None] 
+	r_theta = En[:3,:] - theta[:,None]
+	r_T = En[3:,:] - T[:,None]
 
-	Eix = sum(pow(linalg.vector_norm(e[:,0,:],dim=0),2))\
-		/ (linalg.vector_norm(m1[:,0])**2)
-	Eix = Eix/self.ensembleSize
-	Eit = sum(pow(linalg.vector_norm(e[:,1,:],dim=0),2))\
-		/ (linalg.vector_norm(m1[:,1])**2)
-	Eit = Eit/self.ensembleSize
-	(self.E).append([Eix,Eit])
+	misfit = mm(Atheta,r_T) - noise[:,None]
 
+	E_theta = div(mean(e_theta**2,dim=1),m1[:3]**2)
+	(self.E_theta).append(E_theta)
 
-	Rix = sum(pow(linalg.vector_norm(r[:,0,:],dim=0),2))\
-		/ (linalg.vector_norm(w_exact[:,0])**2)
-	Rix = Rix/self.ensembleSize
-	Rit = sum(pow(linalg.vector_norm(r[:,1,:],dim=0),2))\
-		/ (linalg.vector_norm(w_exact[:,1])**2)
-	Rit = Rit/self.ensembleSize
-	(self.R).append([Rix,Rit])
+	E_T = sum(pow(linalg.vector_norm(e_T,dim=0),2))\
+		/ (linalg.vector_norm(m1[3:])**2)
+	E_T = E_T/self.ensembleSize
+	(self.E_T).append(E_T)
 
+	R_theta = div(mean(r_theta**2,dim=1),theta**2)
+	(self.R_theta).append(R_theta)
+
+	R_T = sum(pow(linalg.vector_norm(r_T,dim=0),2))\
+		/ (linalg.vector_norm(T)**2)
+	R_T = R_T/self.ensembleSize
+	(self.R_T).append(R_T)
 
 	# ae = mm(mm(sqrt(linalg.pinv(gamma)),G),e)
 	# AEi = sum(pow(linalg.vector_norm(ae,dim=0),2))\
@@ -48,7 +47,6 @@ def convergence(self):
 	# 	/ (linalg.vector_norm(p)**2)
 	# (self.AR).append(ARi/self.ensembleSize)
 
-	misfit = flatten(misfit,start_dim=0,end_dim=1)
 	Mi = sum(pow(linalg.vector_norm(misfit,dim=0),2))
 	(self.M).append(Mi/self.ensembleSize)
 

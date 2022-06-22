@@ -9,8 +9,8 @@ if __name__ == "__main__":
 	# set up model
 	N = 50 # number of steps
 	Nt = 50 # number of steps in time
-	# noiselevel = 0.01**2
-	noiselevel = 0
+	noiselevel = 0.01**2
+	# noiselevel = 0
 
 	print('1. Setup the model with (x:%d,t:%d) data and level of noise %.3f\n'%(N,Nt,noiselevel))
 

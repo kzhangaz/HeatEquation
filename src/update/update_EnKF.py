@@ -1,9 +1,8 @@
-from pickle import TRUE
-from torch import mm,matmul,flatten
+from torch import matmul,cat,zeros,eye,t,matrix_rank,mean
 from torch import linalg
 from src import covmat
-from src import moments
-from src.predict_by_En import predict_by_En
+from src.moments import moments
+from src.compute_Atheta import compute_Atheta
 
 def early_stopping(stopping,i,Mi,Mi1,noise):
 
@@ -24,40 +23,52 @@ def early_stopping(stopping,i,Mi,Mi1,noise):
 		else:
 			return False
 
-def update_EnKF(self,maxit,stopping,image_path):
+def update_EnKF(self,stopping,image_path):
 	print("running update_EnKF...")
 
-	for i in range(int(maxit)):
+	for i in range(self.Nt+1):
 
-		self.convergence()
+		self.convergence(i)
 
 		if i > 0:
 			if early_stopping(stopping,i,self.M[i],self.M[i-1],self.noise):
 				print('stopping early by '+stopping+' at %d-th iteration'%(i))
 				break
 
-		# En: l*2*ensembleSize, prediction: N_control+1 * Nt_control+1 * ensemblesize
-		# Cup = covmat.covmat(self.En,mm(self.G,self.En)) # N * N
+		A_theta = compute_Atheta(self.m1[:3],self.N,self.Nt)
+		u = self.u
 
-		# update for x,t
-		Gu = flatten(self.predict_by_En(self.En),start_dim=0,end_dim=1)
-		Cup_x = covmat.covmat(self.En[:,0,:],Gu)
-		Cup_t = covmat.covmat(self.En[:,1,:],Gu)
-		Cpp = covmat.covmat(Gu,Gu) # l*l
+		Tk_next = zeros(self.l,self.ensembleSize)
+		# time update
+		for j in range(self.ensembleSize):
+			Tk_next[:,j] = matmul(A_theta,self.En[3:,j])+self.m1[2]*u[:,i]
+
+		Xk_next = cat((self.En[:3,:],Tk_next),dim=0)
+		Xhat,Pk_next = moments(Xk_next)
+
+		print("Pk: rank is %d/2404, mean is %e, norm is %e"%(matrix_rank(Pk_next),mean(Pk_next),linalg.norm(Pk_next)))
+		# measurement update
+		K1 = Pk_next[:3,3:]
+		K3 = Pk_next[3:,3:]+self.gamma
+		
+		if K3.isinf().any() or K3.isnan().any():
+			raise ValueError("K3 here contains NaN or Inf")
+		
+		print("K3: rank is %d/2404, mean is %e, norm is %e"%(matrix_rank(K3),mean(K3),linalg.norm(K3)))
+		
+		K2 = linalg.pinv(K3)
+		# get pinv 
+		K = matmul(K1,K2)
 
 		for j in range(self.ensembleSize):
-			temp = matmul(linalg.inv(Cpp + self.gamma),\
-						flatten(self.observations,start_dim=0,end_dim=1)\
-						 - Gu[:,j] )
-			self.En[:,0,j] = self.En[:,0,j] + matmul(Cup_x,temp)
-			self.En[:,1,j] = self.En[:,1,j] + matmul(Cup_t,temp)
+			self.En[:,j] = self.En[:,j] + matmul(K,self.y[:,i]-Xhat[3:])
 
-		self.m1,self.m2 = moments.moments(self.En)
+		self.m1,self.m2 = moments(self.En)
 
-		if ((i+1)/maxit * 100) % 10 == 0:
-			print('the %d-th iter of %d'%(i+1,maxit))
+		if i % 10 == 0:
+			print('the %d-th iter of %d'%(i+1,self.Nt+1))
 	
-	self.convergence()
+	self.convergence(i)
 	
 	self.final_plot(i,image_path,method=1)
 	

@@ -3,7 +3,6 @@ from src import set_up_ensemble
 from src.update.convergence import convergence
 from src import update_model
 from src import final_plots
-from src.predict_by_En import predict_by_En
 
 class EnKFmodel(object):
 	
@@ -12,9 +11,12 @@ class EnKFmodel(object):
 		self.N = N
 		self.noiselevel = noiselevel # scalar
 
-		self.E = []
-		self.R = []
+		self.E_theta = []
+		self.E_T = []
+		self.R_theta = []
+		self.R_T = []
 		self.M = [] # M[i] size: 1 * 1
+		self.theta_hat = []
 
 	set_up_model = set_up_model.set_up_model
 	# l,A,T,y,theta,u,noise,gamma are set
@@ -32,8 +34,6 @@ class EnKFmodel(object):
 	# ensembleSize: J=200
 	# En size: N * J
 	# m1: N
-	# m2: 
-	predict_by_En = predict_by_En
 
 	convergence = convergence
 

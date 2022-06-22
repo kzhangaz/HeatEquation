@@ -84,10 +84,10 @@ def set_up_model(self,image_path):
 	# compute Tk
 	for i in range(1,Nt+1):
 		T[:,i] = torch.matmul(A,T[:,i-1])+r2*u[:,i-1]
-		if i == int(Nt/2):
-			print("after control:")
-		if i%5:
-			print(torch.norm(T[:,i]))
+		# if i == int(Nt/2):
+		# 	print("after control:")
+		# if i%5:
+		# 	print(torch.norm(T[:,i]))
 
 	# plot T without noise
 	def animate(k):
@@ -118,7 +118,7 @@ def set_up_model(self,image_path):
 	else:
 		gamma = torch.eye(l)
 		noise = torch.zeros(l,Nt+1)
-
+	
 	y = T + noise
 
 

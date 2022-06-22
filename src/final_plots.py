@@ -13,38 +13,48 @@ def final_plot(self,iter,image_path,method):
 
 	ltype = '-x'
 	color = 'b'
-	# plot E
+
+	# plot E_T & R_T
 	f, (ax1,ax2) = plt.subplots(2,1)
 	
-	E = torch.Tensor(self.E)
+	E_T = torch.Tensor(self.E_T)
+	R_T = torch.Tensor(self.R_T)
 	ax1.set_yscale('symlog')
-	ax1.plot(torch.linspace(0,iter+1,iter+2),E[:,0].numpy(),ltype,color=color)
-	ax1.set_title('E over iteration')
+	ax1.plot(torch.linspace(0,iter+1,iter+2),E_T.numpy(),ltype,color=color)
+	ax1.set_title('E_T over iteration')
 	ax1.set_xlabel('Iteration')
-	ax1.set_ylabel('e(x)')
+	ax1.set_ylabel('E_T')
 
 	ax2.set_yscale('symlog')
-	ax2.plot(torch.linspace(0,iter+1,iter+2),E[:,1].numpy(),ltype,color=color)
+	ax2.plot(torch.linspace(0,iter+1,iter+2),R_T.numpy(),ltype,color=color)
 	ax1.set_xlabel('Iteration')
-	ax1.set_ylabel('e(t)')
+	ax1.set_ylabel('R_T')
 
-	f.savefig(image_path+'/E.jpg',bbox_inches='tight')
+	f.savefig(image_path+'/estimation/estimation of T.jpg',bbox_inches='tight')
 
-	# plot R
-	f, (ax1,ax2) = plt.subplots(2,1)
-	R = torch.Tensor(self.R)
-	ax1.set_yscale('symlog')
-	ax1.plot(torch.linspace(0,iter+1,iter+2),R[:,0].numpy(),ltype,color=color)
-	ax1.set_title('R over iteration')
-	ax1.set_xlabel('Iteration')
-	ax1.set_ylabel('r(x)')
+	# plot theta
+	E_theta = torch.Tensor(self.E_theta)
+	R_theta = torch.Tensor(self.R_theta)
 
-	ax2.set_yscale('symlog')
-	ax2.plot(torch.linspace(0,iter+1,iter+2),R[:,1].numpy(),ltype,color=color)
-	ax1.set_xlabel('Iteration')
-	ax1.set_ylabel('r(t)')
+	f, ax1 = plt.subplots(1,3)
+	for idx,ax in enumerate(ax1):
+		ax.set_yscale('symlog')
+		ax.plot(torch.linspace(0,iter+1,iter+2),E_theta[:,idx].numpy(),ltype,color=color)
+		ax.set_xlabel('Iteration')
+		ax.set_ylabel('E_theta')
+	ax.set_title('E_theta over iteration')
 
-	f.savefig(image_path+'/R.jpg',bbox_inches='tight')
+	f.savefig(image_path+'/estimation/E_theta.jpg',bbox_inches='tight')
+
+	f, ax1 = plt.subplots(1,3)
+	for idx,ax in enumerate(ax1):
+		ax.set_yscale('symlog')
+		ax.plot(torch.linspace(0,iter+1,iter+2),R_theta[:,idx].numpy(),ltype,color=color)
+		ax.set_xlabel('Iteration')
+		ax.set_ylabel('R_theta')
+	ax.set_title('R_theta over iteration')
+
+	f.savefig(image_path+'/estimation/R_theta.jpg',bbox_inches='tight')
 
 	# plot M
 	plt.figure()
@@ -54,15 +64,16 @@ def final_plot(self,iter,image_path,method):
 	plt.title('Misfit')
 	plt.savefig(image_path+'/Misfit.jpg',bbox_inches='tight')
 
-	# plot
-	plt.figure()
-	w_exact = self.w_exact 
-	m1 = self.m1
-	plt.scatter(w_exact[0:100,0],w_exact[0:100,1], s=5, c='b', marker='o')
-	plt.scatter(m1[0:100,0],m1[0:100,1], s=5, c='r', marker='o')
-	plt.title('Reconstruction of the control')
-	plt.xlabel('x')
-	plt.ylabel('t')
-	plt.savefig(image_path+'/ReconstructionOfControl.jpg',bbox_inches='tight')
+	# plot reconstruction of theta
+	f, ax1 = plt.subplots(1,3)
+	theta_hat = self.theta_hat
+	for idx,ax in enumerate(ax1):
+		ax.set_yscale('symlog')
+		ax.plot(torch.linspace(0,iter+1,iter+2),theta_hat[:,idx].numpy(),'k-')
+		ax.plot(torch.linspace(0,iter+1,iter+2),(self.theta[idx])*torch.ones(iter+2),'r-')
+		ax.set_xlabel('Iteration')
+		ax.set_ylabel('theta_hat[%d]'%(idx))
+	ax.set_title('Reconstruction of theta')
+	plt.savefig(image_path+'/ReconstructionOfTheta.jpg',bbox_inches='tight')
 
 	return

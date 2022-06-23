@@ -8,7 +8,8 @@ if __name__ == "__main__":
 
 	# set up model
 	N = 50 # number of steps
-	Nt = 50 # number of steps in time
+	# Nt = 50 # number of steps in time
+	Nt = 30
 	noiselevel = 0.01**2
 	# noiselevel = 0
 

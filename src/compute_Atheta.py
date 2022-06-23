@@ -1,7 +1,7 @@
 import torch
 def compute_Atheta(theta,N,Nt):
 
-	mathcal_K,a,b = theta[0],theta[1],theta[2]
+	mathcal_K,a,b = 0.01*theta[0],theta[1],theta[2]
 	h = 1/N
 	ht = 1/Nt
 	l = (N-1)**2

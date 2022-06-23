@@ -2,14 +2,7 @@ import matplotlib.pyplot as plt
 import torch
 from math import pi
 
-def final_plot(self,iter,image_path,method):
-	if method == 1:
-		image_path = image_path+'/method1'
-	elif method == 5:
-		image_path = image_path+'/method5'
-	else:
-		print("No such method")
-		return
+def final_plot(self,iter,image_path):
 
 	ltype = '-x'
 	color = 'b'
@@ -21,7 +14,7 @@ def final_plot(self,iter,image_path,method):
 	R_T = torch.Tensor(self.R_T)
 	ax1.set_yscale('symlog')
 	ax1.plot(torch.linspace(0,iter+1,iter+2),E_T.numpy(),ltype,color=color)
-	ax1.set_title('E_T over iteration')
+	ax1.set_title('error&var of estimation of T over iteration')
 	ax1.set_xlabel('Iteration')
 	ax1.set_ylabel('E_T')
 
@@ -33,8 +26,8 @@ def final_plot(self,iter,image_path,method):
 	f.savefig(image_path+'/estimation/estimation of T.jpg',bbox_inches='tight')
 
 	# plot theta
-	E_theta = torch.Tensor(self.E_theta)
-	R_theta = torch.Tensor(self.R_theta)
+	E_theta = torch.as_tensor([c.numpy() for c in self.E_theta])
+	R_theta = torch.as_tensor([c.numpy() for c in self.R_theta])
 
 	f, ax1 = plt.subplots(1,3)
 	for idx,ax in enumerate(ax1):
@@ -62,11 +55,11 @@ def final_plot(self,iter,image_path,method):
 	plt.xlabel('Iteration')
 	plt.ylabel('var theta')
 	plt.title('Misfit')
-	plt.savefig(image_path+'/Misfit.jpg',bbox_inches='tight')
+	plt.savefig(image_path+'/estimation/Misfit.jpg',bbox_inches='tight')
 
 	# plot reconstruction of theta
 	f, ax1 = plt.subplots(1,3)
-	theta_hat = self.theta_hat
+	theta_hat = torch.as_tensor([c.numpy() for c in self.theta_hat])
 	for idx,ax in enumerate(ax1):
 		ax.set_yscale('symlog')
 		ax.plot(torch.linspace(0,iter+1,iter+2),theta_hat[:,idx].numpy(),'k-')
@@ -74,6 +67,6 @@ def final_plot(self,iter,image_path,method):
 		ax.set_xlabel('Iteration')
 		ax.set_ylabel('theta_hat[%d]'%(idx))
 	ax.set_title('Reconstruction of theta')
-	plt.savefig(image_path+'/ReconstructionOfTheta.jpg',bbox_inches='tight')
+	plt.savefig(image_path+'/estimation/ReconstructionOfTheta.jpg',bbox_inches='tight')
 
 	return

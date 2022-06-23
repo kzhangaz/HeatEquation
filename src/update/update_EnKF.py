@@ -46,18 +46,16 @@ def update_EnKF(self,stopping,image_path):
 		Xk_next = cat((self.En[:3,:],Tk_next),dim=0)
 		Xhat,Pk_next = moments(Xk_next)
 
-		print("Pk: rank is %d/2404, mean is %e, norm is %e"%(matrix_rank(Pk_next),mean(Pk_next),linalg.norm(Pk_next)))
 		# measurement update
-		K1 = Pk_next[:3,3:]
+		K1 = Pk_next[:,3:]
 		K3 = Pk_next[3:,3:]+self.gamma
 		
 		if K3.isinf().any() or K3.isnan().any():
 			raise ValueError("K3 here contains NaN or Inf")
 		
-		print("K3: rank is %d/2404, mean is %e, norm is %e"%(matrix_rank(K3),mean(K3),linalg.norm(K3)))
-		
 		K2 = linalg.pinv(K3)
-		# get pinv 
+		# try low rank version of pinv
+
 		K = matmul(K1,K2)
 
 		for j in range(self.ensembleSize):
@@ -67,9 +65,12 @@ def update_EnKF(self,stopping,image_path):
 
 		if i % 10 == 0:
 			print('the %d-th iter of %d'%(i+1,self.Nt+1))
+			print("Pk: rank is %d/2404, mean is %e, norm is %e"%(linalg.matrix_rank(Pk_next),mean(Pk_next),linalg.norm(Pk_next)))
+			print("K: rank is %d/2404, det is %e, norm is %e"%(linalg.matrix_rank(K3),linalg.det(K3),linalg.norm(K3)))
+
 	
 	self.convergence(i)
 	
-	self.final_plot(i,image_path,method=1)
+	self.final_plot(i,image_path)
 	
 	return

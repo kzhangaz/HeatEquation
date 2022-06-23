@@ -23,7 +23,7 @@ def set_up_model(self,image_path):
 	mathcal_K = 0.02
 	a = 25
 	b = 20
-	theta = torch.tensor([mathcal_K,a,b])
+	theta = torch.tensor([100*mathcal_K,a,b])
 	self.theta = theta
 
 	r1 = (mathcal_K*ht)/(a * (h**2))

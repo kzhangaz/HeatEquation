@@ -18,11 +18,11 @@ def set_up_ensemble(self,ensembleSize,initEnsemble):
 	if initEnsemble == 'random':
 
 		for j in range(3):
-			En[j,:] = theta[j]*torch.ones(ensembleSize) + torch.randn(ensembleSize)
+			En[j,:] = theta[j]*torch.ones(ensembleSize) + 5*torch.randn(ensembleSize)
 
 		for j in range(3,l):
-			En[j,:] = torch.mean(T[j,:]) * torch.ones(ensembleSize) + torch.randn(ensembleSize)
-			En[j,:] = torch.mean(T[j,:]) * torch.ones(ensembleSize) + torch.randn(ensembleSize)
+			En[j,:] = torch.mean(T[j,:]) * torch.ones(ensembleSize) + 5*torch.randn(ensembleSize)
+			En[j,:] = torch.mean(T[j,:]) * torch.ones(ensembleSize) + 5*torch.randn(ensembleSize)
 		
 		self.En = En
 		self.m1,self.m2 = moments.moments(self.En)

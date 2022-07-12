@@ -35,12 +35,12 @@ def update_EnKF(self,stopping,image_path):
 				print('stopping early by '+stopping+' at %d-th iteration'%(i))
 				break
 
-		A_theta = compute_Atheta(self.m1[:3],self.N,self.Nt)
 		u = self.u
 
 		Tk_next = zeros(self.l,self.ensembleSize)
 		# time update
 		for j in range(self.ensembleSize):
+			A_theta = compute_Atheta(self.En[:3,j],self.N,self.Nt)
 			Tk_next[:,j] = matmul(A_theta,self.En[3:,j])+self.m1[2]*u[:,i]
 
 		Xk_next = cat((self.En[:3,:],Tk_next),dim=0)
@@ -52,14 +52,11 @@ def update_EnKF(self,stopping,image_path):
 		
 		if K3.isinf().any() or K3.isnan().any():
 			raise ValueError("K3 here contains NaN or Inf")
-		
-		K2 = linalg.pinv(K3)
-		# try low rank version of pinv
-
-		K = matmul(K1,K2)
+	
+		K = matmul(K1,linalg.pinv(K3))
 
 		for j in range(self.ensembleSize):
-			self.En[:,j] = self.En[:,j] + matmul(K,self.y[:,i]-Xhat[3:])
+			self.En[:,j] = self.En[:,j] + matmul(K,self.y[:,i+1]-Xk_next[3:,j])
 
 		self.m1,self.m2 = moments(self.En)
 

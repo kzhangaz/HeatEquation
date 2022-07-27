@@ -2,6 +2,7 @@ from __future__ import division
 import sys, petsc4py
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 
 petsc4py.init(sys.argv)
 
@@ -13,7 +14,7 @@ class HeatModel2D:
 	def __init__(self, N, Nt, mathcal_K, a, b, c, Q_in):
 		self.N = N
 		self.Nt = Nt
-		h = 1/N
+		h = 1/(N-1)
 		ht = 1/Nt
 		self.mathcal_K = mathcal_K
 		self.a = a
@@ -21,122 +22,123 @@ class HeatModel2D:
 		self.c = c
 		self.Q_in = Q_in
 		self.r = (mathcal_K*ht)/(a * (h**2))
+		self.r2 = (c*ht)/(a*(h**2))
 		self.T_all = []
 
 	def check_numerical(self):
-		if 1-4*(self.r) <= 0:
+		if 1-4*(self.r) <= 0 or 1-3*(self.r)+(self.r2)>=1:
 			raise ValueError("Numerically Not Stable!")
 		else:
-			print("Numerically OK! ;)")
+			print("Numerically OK! ;) Preparing for Computation")
+			self.set_matA()
+			self.set_matB()
+			self.set_vecC()
 
-	def get_X_all(self, X, Xn, Xs, Xw, Xe):
 
-		X = X.reshape((self.N-1,self.N-1))
-		X_all = np.concatenate((Xn[np.newaxis,:], X, Xs[np.newaxis,:]), axis=0)
-		X_all = np.concatenate((Xw[:,np.newaxis], X_all, Xe[:,np.newaxis]), axis=1)
+	def set_matA(self):
 
-		return X_all
-
-	def compute(self, X, Xn, Xs, Xw, Xe):
-
-		# Create a new sparse PETSc matrix, fill it and then assemble it
-		l = (self.N-1)**2
-		r = self.r
+		N = self.N
+		l = (N)**2
 		A = PETSc.Mat().createAIJ([l, l])
 		A.setUp()
 
-		diagonal_entry = 1 - 4*r
-		off_diagonal_entry = r
-
 		diag = PETSc.Vec().createSeq(l)
-		diag.setArray(diagonal_entry*np.ones(l))
+		diag.setArray((-4)*np.ones(l))
 		A.setDiagonal(diag)
+
+		for i in range(1,N-1):
+			A.setValue(i*N,i*N,-3)
+
+		for i in range(1,N-1):
+			A.setValue(i,i,-3)
+			A.setValue(l-i-1,l-i-1,-3)
+
+		A.setValue(0,0,-2)
+		A.setValue((N-1)*N,(N-1)*N,-2)
 
 		for i in range(l):
 			if i>0: 
-				if i%(self.N-1) != 0:
-					A.setValue(i, i-1, off_diagonal_entry)
-				if i-(self.N-1) >= 0:
-					A.setValue(i, i-(self.N-1), off_diagonal_entry)
+				if i%(N) != 0:
+					A.setValue(i, i-1, 1)
+				if i-(N) >= 0:
+					A.setValue(i, i-N, 1)
 			if i<(l-1):
-				if i%(self.N-1) != 2:
-					A.setValue(i, i+1, off_diagonal_entry)
-				if i+self.N-1 <= l-1:
-					A.setValue(i, i+(self.N-1), off_diagonal_entry)
+				if i%(N) != N-1:
+					A.setValue(i, i+1, 1)
+				if i+N <= l-1:
+					A.setValue(i, i+N, 1)
+
+		for i in range(N):
+			A.setValues((i+1)*N-1,np.arange(l,dtype=np.int32),np.zeros(l))
 
 		A.assemble()
+		self.A = A
 
-		# # print to check
-		# for i in range(l):
-		#     print(A.getValues(i,np.arange(l,dtype=np.int32)))
+		return
 
-		# update
-		ht = 1/(self.Nt)
-		h = 1/(self.N)
+
+	def set_matB(self):
+
 		N = self.N
-		r2 = ((self.c)*ht)/((self.a)*(h**2))
-		bQ = ((self.b)*(self.Q_in))/((self.a)*(self.Nt))
-		X_left = X.array.reshape(N-1,N-1).T[0,:]
-		# print("X_left:")
-		# print(np.mean(X_left))
+		l = (N)**2
+		B = PETSc.Mat().createAIJ([l, l])
+		B.setUp()
 
-		Xn_next = (1-3*r)*Xn + r*np.concatenate((0,Xn[1:]),axis=None)\
-		+ r*np.concatenate((Xn[:-1],0),axis=None) \
-		+ r*(X.array[:N-1]) + bQ
-		Xn_next[0] = Xn_next[0] + r*Xw[0]
-		Xn_next[-1] = Xn_next[-1] + r*Xe[0]
+		for i in range(N):
+			B.setValue(i*N,i*N,1)
 
-		Xs_next = (1-3*r)*Xs + r*np.concatenate((0,Xs[1:]),axis=None)\
-		+ r*np.concatenate((Xs[:-1],0),axis=None) \
-		+ r*(X.array[-(N-1):]) + bQ
-		Xs_next[0] = Xs_next[0] + r*Xw[-1]
-		Xs_next[-1] = Xs_next[-1] + r*Xe[-1]
+		B.assemble()
+		self.B = B
 
-		Xw_next = (1-3*r+r2)*Xw + r*np.concatenate((0,Xw[1:]),axis=None)\
-		+ r*np.concatenate((Xw[:-1],0),axis=None)\
-		+ r*np.concatenate((0,X_left,0),axis=None) + bQ\
-		+ r2
-		Xw_next[0] = Xw_next[0] + r*Xw[0]
-		Xw_next[-1] = Xw_next[-1] + r*Xw[-1]
+		return
 
-		Xe_next = Xe
+	def set_vecC(self):
 
-		u_np = np.zeros((N-1,N-1))
-		u_np[0,:] = r*Xn
-		u_np[-1,:] = r*Xs
-		u_np[:,0] = r*Xw[1:-1]
-		u_np[:,-1] = r*Xe[1:-1]
-		u_np = u_np.ravel()
+		N = self.N
+		l = (N)**2
+		C = PETSc.Vec().createSeq(l)
 
-		X_next = PETSc.Vec().createSeq(l)
-		A.mult(X,X_next)
-		u = PETSc.Vec().createSeq(l)
-		u.setArray(u_np)
-		X_next = X_next + u
+		for i in range(N):
+			C.setValue(i*N,1)
 
-		return X_next, Xn_next, Xs_next, Xw_next, Xe_next
+		self.C = C
+
+		return
+
+	def compute_delta_T(self, T):
+
+		# Create a new sparse PETSc matrix, fill it and then assemble it
+		l = (self.N)**2
+		r = self.r
+		r2 = self.r2
+		A = self.A
+		B = self.B
+		C = self.C
+
+		temp = r*A + r2*B
+		delta_T  = temp*T + r2*C
+
+		return delta_T
 
 
 	def compute_all_T(self):
 
 		#initialize
 		N = self.N
-		l = (N-1)**2
+		l = N**2
 
-		X = PETSc.Vec().createSeq(l)
-		X.setArray(np.ones(l))
-		Xn = np.ones(N-1) # 1 to N-1
-		Xs = np.ones(N-1) # 1 to N-1
-		Xw = np.ones(N+1) # 0 to N
-		Xe = 4*np.ones(N+1) # 0 to N
+		T = PETSc.Vec().createSeq(l)
+		T.setArray(np.ones(l))
 
-		X_all = self.get_X_all(X.array, Xn, Xs, Xw, Xe)
-		(self.T_all).append(X_all)
+		for i in range(N):
+			T.setValue((i+1)*N-1,4)
+
+		(self.T_all).append(T.array)
 
 		for i in range(self.Nt):
-			X, Xn, Xs, Xw, Xe = self.compute(X, Xn, Xs, Xw, Xe)
-			X_all = self.get_X_all(X.array, Xn, Xs, Xw, Xe)
-			(self.T_all).append(X_all)
+			T_delta = self.compute_delta_T(T)
+			T = T + T_delta
+			(self.T_all).append(T.array)
 
 		return
 
@@ -150,14 +152,50 @@ class HeatModel2D:
 			plt.xlabel("x")
 			plt.ylabel("y")
 
-			C = self.T_all[k]
+			C = self.T_all[k].reshape(self.N,self.N)
 
 			# This is to plot u_k (u at time-step k)
 			plt.pcolormesh(C, cmap=plt.cm.jet, vmin=0,vmax=4)
 			plt.colorbar()
 			return plt
 
-		def pics(k):
+		def pics():
+		# k from 0 to Nt
+			for k in range(self.Nt+1):
+				if k%5 == 0:
+					plt.clf()
+
+					plt.title("Temperature at t = %d unit time"%(k))
+					plt.xlabel("x")
+					plt.ylabel("y")
+
+					C = self.T_all[k].reshape(self.N,self.N)
+
+					# This is to plot u_k (u at time-step k)
+					plt.pcolormesh(C, cmap=plt.cm.jet, vmin=0,vmax=4)
+					plt.colorbar()
+					plt.savefig(image_path+'/images/T=%d'%(k))
+
+			return
+
+		anim = FuncAnimation(plt.figure(), animate, interval=500, frames=self.Nt+1, repeat=False)
+		anim.save(image_path+'/heat_diffusion_simulation.gif', writer='imagemagick', fps=60)
+		pics()
+
+		return
+
+	def add_noise(self,noiselevel,image_path):
+		self.noiselevel = noiselevel
+		gamma = noiselevel*torch.eye(self.N**2)
+		self.gamma = gamma
+
+		observations = np.concatenate(self.T_all).reshape(self.Nt+1,self.N**2)
+		observations = torch.from_numpy(observations)
+		noise = torch.distributions.MultivariateNormal(torch.zeros(self.N**2),gamma).sample(sample_shape=[self.Nt+1])
+		observations = observations + noise
+		self.observations = observations.t()
+
+		def animate(k):
 		# k from 0 to Nt
 			plt.clf()
 
@@ -165,20 +203,13 @@ class HeatModel2D:
 			plt.xlabel("x")
 			plt.ylabel("y")
 
-			C = self.T_all[k]
+			C = self.observations[:,k].reshape(self.N,self.N)
 
 			# This is to plot u_k (u at time-step k)
 			plt.pcolormesh(C, cmap=plt.cm.jet, vmin=0,vmax=4)
 			plt.colorbar()
-			if k%5 == 0:
-				plt.savefig(image_path+'/pics/T=%d'%(k))
 			return plt
 
-		anim1 = FuncAnimation(plt.figure(), pics, interval=500, frames=self.Nt+1, repeat=False)
-		anim1.save(image_path+'/hey.gif', writer='imagemagick', fps=60)
 		anim = FuncAnimation(plt.figure(), animate, interval=500, frames=self.Nt+1, repeat=False)
-		anim.save(image_path+'/heat_equation_simulation.gif', writer='imagemagick', fps=60)
-
+		anim.save(image_path+'/observations.gif', writer='imagemagick', fps=60)
 		return
-
-

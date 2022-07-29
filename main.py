@@ -11,7 +11,7 @@ if __name__ == "__main__":
 	a,b,c = 25,20,0
 	Q_in = 0
 
-	noiselevel = 0.01**2
+	noiselevel = 0.1
 
 	print('1. Setup the model with (x:%d,t:%d) data and level of noise %e\n'%(N,Nt,noiselevel))
 
@@ -27,6 +27,7 @@ if __name__ == "__main__":
 
 	# set up ensemble
 	stopping = 'discrepancy'
+	# stopping = 'none'
 	model = EnKFmodel(heatmod,stopping,image_path)
 	ensembleSize = 50
 	initEnsemble = 'Random'

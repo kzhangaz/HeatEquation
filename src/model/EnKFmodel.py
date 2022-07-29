@@ -25,7 +25,7 @@ class EnKFmodel():
 	def set_up_ensemble(self,ensembleSize):
 		self.ensembleSize = ensembleSize
 		En = torch.zeros(self.theta.size(dim=0),ensembleSize)
-		En = self.theta[:,None] + 2000*torch.randn(En.shape)
+		En = self.theta[:,None] + 200*torch.randn(En.shape)
 
 		self.En = En
 		self.m1,self.m2 = moments(self.En)
@@ -61,7 +61,7 @@ class EnKFmodel():
 
 			self.convergence()
 			if i>0:
-				if early_stopping(self.stopping,i,self.R[i],self.R[i-1]):
+				if early_stopping(self.stopping,i,self.R[i],self.R[i-1],self.E[i]):
 					break
 
 			# Tk
@@ -85,7 +85,7 @@ class EnKFmodel():
 			self.m1,self.m2 = moments(self.En)
 
 			if i % 10 == 0:
-				print('the %d-th iter done'%(i+1))
+				print('the %d-th iter done'%(i))
 
 		self.convergence()
 		self.final_plots(i)
@@ -94,6 +94,22 @@ class EnKFmodel():
 		ltype = '-x'
 		color = 'b'
 		image_path=self.image_path
+
+		# write information to file
+		f = open("result.txt", "a")
+		f.write("New record appended:")
+		f.write('\n')
+		f.write("Actual Value: %f, %f"%(self.theta[0].numpy(),self.theta[1].numpy()))
+		f.write('\n')
+		f.write("Noise Level: %f"%(self.heatmod.noiselevel))
+		f.write('\n')
+		f.write("Intitial Misfit: %f, %f"%(self.M[0].numpy()[0],self.M[0].numpy()[1]))
+		f.write('\n')
+		f.write("Stopping at %d-th iteration"%(iter))
+		f.write('\n')
+		f.write("Misfit: %f, %f"%(self.M[-1].numpy()[0],self.M[-1].numpy()[1]))
+		f.write('\n')
+		f.close()
 
 		# plot E_T & R_T
 		f, (ax1,ax2) = plt.subplots(2,1,figsize=(20,10))
@@ -119,7 +135,7 @@ class EnKFmodel():
 		f, ax1 = plt.subplots(2,1,figsize=(20,10))
 		for idx,ax in enumerate(ax1):
 			ax.set_yscale('symlog')
-			ax.plot(torch.linspace(0,iter+1,iter+2),M[:,idx],ltype,color=color)
+			ax.plot(torch.linspace(0,iter+1,iter+2),np.absolute(M[:,idx]),ltype,color=color)
 			ax.set_xlabel('Iteration')
 			ax.set_ylabel('M')
 			ax.set_title('M over iteration')

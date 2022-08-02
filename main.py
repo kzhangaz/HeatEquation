@@ -8,7 +8,7 @@ if __name__ == "__main__":
 	N = 50
 	Nt = 100
 	mathcal_K = 0.2
-	a,b,c = 25,20,0
+	a,b,c = 25,20,-0.015
 	Q_in = 0
 
 	noiselevel = 0.1

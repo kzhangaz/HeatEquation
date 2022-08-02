@@ -76,7 +76,12 @@ class EnKFmodel():
 			Pk = self.m2
 			temp1 = torch.matmul(Pk,Hk.t())
 			temp2 = torch.matmul(Hk,temp1)+self.heatmod.gamma
-			K = torch.matmul(temp1,torch.linalg.pinv(temp2))
+			try:
+				K = torch.matmul(temp1,torch.linalg.pinv(temp2))
+			except:
+				print('early stopping at %d-th iter due to numerical error'%(i+1))
+				break
+
 			# update
 			for j in range(self.ensembleSize):
 				temp = delta_Tk-torch.matmul(Hk,self.En[:,j])
@@ -96,7 +101,7 @@ class EnKFmodel():
 		image_path=self.image_path
 
 		# write information to file
-		f = open("result.txt", "a")
+		f = open(image_path+"/result.txt", "w")
 		f.write("New record appended:")
 		f.write('\n')
 		f.write("Actual Value: %f, %f"%(self.theta[0].numpy(),self.theta[1].numpy()))
@@ -108,6 +113,8 @@ class EnKFmodel():
 		f.write("Stopping at %d-th iteration"%(iter))
 		f.write('\n')
 		f.write("Misfit: %f, %f"%(self.M[-1].numpy()[0],self.M[-1].numpy()[1]))
+		f.write('\n')
+		f.write("E,R: %f, %f"%(self.E[-1].numpy(),self.R[-1].numpy()))
 		f.write('\n')
 		f.close()
 

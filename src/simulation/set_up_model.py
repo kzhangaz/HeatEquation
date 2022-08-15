@@ -11,19 +11,31 @@ from matplotlib.animation import FuncAnimation
 
 class HeatModel2D:
 
-	def __init__(self, N, Nt, mathcal_K, a, b, c, Q_in):
-		self.N = N
-		self.Nt = Nt
-		h = 1/(N-1)
-		ht = 1/Nt
-		self.mathcal_K = mathcal_K
-		self.a = a
-		self.b = b
-		self.c = c
-		self.Q_in = Q_in
-		self.r = (mathcal_K*ht)/(a * (h**2))
-		self.r2 = (c*ht)/(a*(h**2))
-		self.T_all = []
+	def __init__(self, N, Nt, mathcal_K, a, b, c, Q_in,mode,r,r2):
+
+		if mode == 0:
+			self.N = N
+			self.Nt = Nt
+			h = 1/(N-1)
+			ht = 1/Nt
+			self.mathcal_K = mathcal_K
+			self.a = a
+			self.b = b
+			self.c = c
+			self.Q_in = Q_in
+			self.r = (mathcal_K*ht)/(a * (h**2))
+			self.r2 = (c*ht)/(a*(h**2))
+			self.T_all = []
+		elif mode == 1:
+			self.N = N
+			self.Nt = Nt
+			h = 1/(N-1)
+			ht = 1/Nt
+			self.r = r
+			self.r2 = r2
+			self.T_all = []
+		else:
+			raise ValueError('mode should be 0/1')
 
 	def check_numerical(self):
 		if 1-4*(self.r) <= 0 or 1-3*(self.r)+(self.r2)>=1:
@@ -108,7 +120,7 @@ class HeatModel2D:
 	def compute_delta_T(self, T):
 
 		# Create a new sparse PETSc matrix, fill it and then assemble it
-		l = (self.N)**2
+		# l = (self.N)**2
 		r = self.r
 		r2 = self.r2
 		A = self.A
@@ -116,19 +128,22 @@ class HeatModel2D:
 		C = self.C
 
 		temp = r*A + r2*B
-		delta_T  = temp*T + r2*C
+		delta_T = temp*T + r2*C
 
 		return delta_T
 
 
-	def compute_all_T(self):
+	def compute_all_T(self,T0):
 
 		#initialize
 		N = self.N
 		l = N**2
-
-		T = PETSc.Vec().createSeq(l)
-		T.setArray(np.ones(l))
+		if T0 == None:
+			T = PETSc.Vec().createSeq(l)
+			T.setArray(np.ones(l))
+		else:
+			T = PETSc.Vec().createSeq(l)
+			T.setArray(T0)
 
 		for i in range(N):
 			T.setValue((i+1)*N-1,4)
@@ -212,4 +227,24 @@ class HeatModel2D:
 
 		anim = FuncAnimation(plt.figure(), animate, interval=500, frames=self.Nt+1, repeat=False)
 		anim.save(image_path+'/observations.gif', writer='imagemagick', fps=60)
+		
+		def pics():
+		# k from 0 to Nt
+			for k in range(self.Nt+1):
+				if k%5 == 0:
+					plt.clf()
+
+					plt.title("Temperature at t = %d unit time"%(k))
+					plt.xlabel("x")
+					plt.ylabel("y")
+
+					C = self.observations[:,k].reshape(self.N,self.N)
+
+					# This is to plot u_k (u at time-step k)
+					plt.pcolormesh(C, cmap=plt.cm.jet, vmin=0,vmax=4)
+					plt.colorbar()
+					plt.savefig(image_path+'/observations/T=%d'%(k))
+
+			return
+		pics()
 		return

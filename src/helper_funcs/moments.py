@@ -10,7 +10,8 @@ def moments(En):
 	En = En.t()
 
 	m2 = torch.matmul(En[:,:,None],En[:,None,:])
-	m2 = torch.mean(m2,dim=0)*(l/(l-1))
+	m2 = torch.mean(m2,dim=0)
+	# *(l/(l-1))
 	
 	return m1,m2
 

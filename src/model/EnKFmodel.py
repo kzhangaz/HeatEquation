@@ -4,6 +4,7 @@ from src.helper_funcs.early_stopping import early_stopping
 import torch.linalg as linalg
 import matplotlib.pyplot as plt
 import numpy as np
+from src.simulation.set_up_model import HeatModel2D
 
 class EnKFmodel():
 	def __init__(self,heatmod,stopping,image_path):
@@ -85,7 +86,7 @@ class EnKFmodel():
 			# update
 			for j in range(self.ensembleSize):
 				temp = delta_Tk-torch.matmul(Hk,self.En[:,j])
-				self.En[:,j] = self.En[:,j] + torch.matmul(K,temp)
+				self.En[:,j] = self.En[:,j] + 0.5*torch.matmul(K,temp)
 
 			self.m1,self.m2 = moments(self.En)
 
@@ -101,6 +102,10 @@ class EnKFmodel():
 		image_path=self.image_path
 
 		# write information to file
+		f1 = open('notes.txt', "a")
+		theta_hat = np.array([c.numpy() for c in self.theta_hat])
+		f1.write('%f,%f'%(theta_hat[-1,0],theta_hat[-1,1]))
+
 		f = open(image_path+"/result.txt", "w")
 		f.write("New record appended:")
 		f.write('\n')
@@ -115,6 +120,16 @@ class EnKFmodel():
 		f.write("Misfit: %f, %f"%(self.M[-1].numpy()[0],self.M[-1].numpy()[1]))
 		f.write('\n')
 		f.write("E,R: %f, %f"%(self.E[-1].numpy(),self.R[-1].numpy()))
+		f.write('\n')
+		if self.theta[0].numpy()>1e-3:
+			m0 = (self.M[-1].numpy()[0])/(self.theta[0].numpy())
+		else:
+			m0 = (self.M[-1].numpy()[0])/(1e-3)
+		if self.theta[1].numpy()>1e-3:
+			m1 = (self.M[-1].numpy()[1])/(self.theta[1].numpy())
+		else:
+			m1 = (self.M[-1].numpy()[1])/(1e-3)
+		f.write("Relative Error: %f, %f"%(m0,m1))
 		f.write('\n')
 		f.close()
 
@@ -151,7 +166,7 @@ class EnKFmodel():
 
 		# plot reconstruction of theta
 		f, ax1 = plt.subplots(2,1,figsize=(20,10))
-		theta_hat = np.array([c.numpy() for c in self.theta_hat])
+		# theta_hat = np.array([c.numpy() for c in self.theta_hat])
 		for idx,ax in enumerate(ax1):
 			ax.set_yscale('symlog')
 			ax.plot(torch.linspace(0,iter+1,iter+2),theta_hat[:,idx],'k-')
@@ -160,5 +175,36 @@ class EnKFmodel():
 			ax.set_ylabel('theta_hat[%d]'%(idx))
 			ax.set_title('Reconstruction of theta')
 		plt.savefig(image_path+'/estimation/ReconstructionOfTheta.jpg',bbox_inches='tight')
+
+		return
+
+	def temperature_predict(self):
+
+		N,Nt = self.heatmod.N, self.heatmod.Nt
+		mode = 1
+		theta_hat = np.array([c.numpy() for c in self.theta_hat])
+		r,r2 = theta_hat[-1,0],theta_hat[-1,1]
+		r = float(r)
+		r2 = float(r2)
+		pred_heatmod = HeatModel2D(N, Nt, None, None, None, None, None,mode,r,r2)
+		pred_heatmod.check_numerical()
+		T0 = self.heatmod.observations[:,-1].numpy()
+		pred_heatmod.compute_all_T(T0)
+		pred_heatmod.generate_animation(self.image_path+'/estimation')
+		
+		T_predict = np.concatenate(pred_heatmod.T_all).reshape(Nt+1,N**2)
+		T_predict = torch.from_numpy(T_predict)
+
+		T_all = np.concatenate(self.heatmod.T_all).reshape(Nt+1,N**2)
+		T_all = torch.from_numpy(T_all)
+
+		r = T_predict - T_all
+		R = torch.div(pow(linalg.vector_norm(r,dim=0),2), pow(linalg.vector_norm(T_all,dim=0),2))
+		plt.figure()
+		plt.plot(torch.linspace(0,Nt+1,Nt+2),R.numpy())
+		plt.ylabel('error')
+		plt.xlabel('time')
+		plt.title('Temperature prediction error')
+		plt.savefig(self.image_path+'/estimation/T_predict_error.jpg',bbox_inches='tight')
 
 		return

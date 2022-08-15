@@ -8,7 +8,8 @@ if __name__ == "__main__":
 	N = 50
 	Nt = 100
 	mathcal_K = 0.2
-	a,b,c = 25,20,-0.015
+	# a,b,c = 25,20,-0.015
+	a,b,c = 25,20,0
 	Q_in = 0
 
 	noiselevel = 0.1
@@ -17,17 +18,17 @@ if __name__ == "__main__":
 
 	# create application context
 	# and PETSc nonlinear solver
-	heatmod = HeatModel2D(N, Nt, mathcal_K, a, b, c, Q_in)
+	heatmod = HeatModel2D(N, Nt, mathcal_K, a, b, c, Q_in,mode=0,r=None,r2=None)
 	heatmod.check_numerical()
-	heatmod.compute_all_T()
+	heatmod.compute_all_T(T0=None)
 	heatmod.generate_animation(image_path+'/simulation')
 	print("simulation done! with r : %.3f, r2 : %.3f"%(heatmod.r,heatmod.r2))
 	heatmod.add_noise(noiselevel,image_path+'/simulation')
 	print('noise added, with noiselevel= %f'%(noiselevel))
 
 	# set up ensemble
-	stopping = 'discrepancy'
-	# stopping = 'none'
+	# stopping = 'discrepancy'
+	stopping = 'none'
 	model = EnKFmodel(heatmod,stopping,image_path)
 	ensembleSize = 50
 	initEnsemble = 'Random'
@@ -35,5 +36,6 @@ if __name__ == "__main__":
 	model.set_up_ensemble(ensembleSize)
 	# with timer.Timer('EnKF timer'):
 	model.update_ensemble()
+	model.temperature_predict()
 
 	

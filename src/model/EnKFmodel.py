@@ -12,6 +12,7 @@ class EnKFmodel():
 		self.E = []
 		self.R = []
 		self.M = []
+		self.D = []
 		self.theta_hat = []
 		self.theta = torch.Tensor([heatmod.r,heatmod.r2])
 		self.stopping = stopping
@@ -48,8 +49,11 @@ class EnKFmodel():
 		print(Ei/self.ensembleSize)
 		(self.E).append(Ei/self.ensembleSize)
 
-		(self.M).append(m1-theta)
-		print('misfit:%f,%f'%((m1-theta)[0],(m1-theta)[1]))
+		Mi = linalg.vector_norm(m1-theta)
+		(self.M).append(Mi)
+
+		(self.D).append(m1-theta)
+		print('descrepency:%f,%f'%((m1-theta)[0],(m1-theta)[1]))
 		(self.theta_hat).append(m1)
 
 		return
@@ -105,6 +109,7 @@ class EnKFmodel():
 		f1 = open('notes.txt', "a")
 		theta_hat = np.array([c.numpy() for c in self.theta_hat])
 		f1.write('%f,%f'%(theta_hat[-1,0],theta_hat[-1,1]))
+		f1.write('\n')
 
 		f = open(image_path+"/result.txt", "w")
 		f.write("New record appended:")
@@ -113,22 +118,22 @@ class EnKFmodel():
 		f.write('\n')
 		f.write("Noise Level: %f"%(self.heatmod.noiselevel))
 		f.write('\n')
-		f.write("Intitial Misfit: %f, %f"%(self.M[0].numpy()[0],self.M[0].numpy()[1]))
+		f.write("Intitial Misfit: %f, %f"%(self.D[0].numpy()[0],self.D[0].numpy()[1]))
 		f.write('\n')
 		f.write("Stopping at %d-th iteration"%(iter))
 		f.write('\n')
-		f.write("Misfit: %f, %f"%(self.M[-1].numpy()[0],self.M[-1].numpy()[1]))
+		f.write("Descrepency: %f, %f"%(self.D[-1].numpy()[0],self.D[-1].numpy()[1]))
 		f.write('\n')
-		f.write("E,R: %f, %f"%(self.E[-1].numpy(),self.R[-1].numpy()))
+		f.write("E,R,M: %f, %f, %f"%(self.E[-1].numpy(),self.R[-1].numpy(),self.M[-1].numpy()))
 		f.write('\n')
 		if self.theta[0].numpy()>1e-3:
-			m0 = (self.M[-1].numpy()[0])/(self.theta[0].numpy())
+			m0 = (self.D[-1].numpy()[0])/(self.theta[0].numpy())
 		else:
-			m0 = (self.M[-1].numpy()[0])/(1e-3)
+			m0 = (self.D[-1].numpy()[0])/(1e-3)
 		if self.theta[1].numpy()>1e-3:
-			m1 = (self.M[-1].numpy()[1])/(self.theta[1].numpy())
+			m1 = (self.D[-1].numpy()[1])/(self.theta[1].numpy())
 		else:
-			m1 = (self.M[-1].numpy()[1])/(1e-3)
+			m1 = (self.D[-1].numpy()[1])/(1e-3)
 		f.write("Relative Error: %f, %f"%(m0,m1))
 		f.write('\n')
 		f.close()
@@ -153,16 +158,25 @@ class EnKFmodel():
 
 		# plot theta
 		M = np.array([c.numpy() for c in self.M])
+		D = np.array([c.numpy() for c in self.D])
 
 		f, ax1 = plt.subplots(2,1,figsize=(20,10))
 		for idx,ax in enumerate(ax1):
 			ax.set_yscale('symlog')
-			ax.plot(torch.linspace(0,iter+1,iter+2),np.absolute(M[:,idx]),ltype,color=color)
+			ax.plot(torch.linspace(0,iter+1,iter+2),np.absolute(D[:,idx]),ltype,color=color)
 			ax.set_xlabel('Iteration')
-			ax.set_ylabel('M')
-			ax.set_title('M over iteration')
+			ax.set_ylabel('D')
+			ax.set_title('D over iteration')
 
-		f.savefig(image_path+'/estimation/M.jpg',bbox_inches='tight')
+		f.savefig(image_path+'/estimation/D.jpg',bbox_inches='tight')
+
+		plt.figure()
+		plt.plot(torch.linspace(0,iter+1,iter+2),M)
+		plt.ylabel('M')
+		plt.xlabel('Iteration')
+		plt.title('M over iteration')
+		plt.savefig(self.image_path+'/estimation/M.jpg',bbox_inches='tight')
+
 
 		# plot reconstruction of theta
 		f, ax1 = plt.subplots(2,1,figsize=(20,10))
@@ -181,15 +195,16 @@ class EnKFmodel():
 	def temperature_predict(self):
 
 		N,Nt = self.heatmod.N, self.heatmod.Nt
-		mode = 1
 		theta_hat = np.array([c.numpy() for c in self.theta_hat])
+		
 		r,r2 = theta_hat[-1,0],theta_hat[-1,1]
 		r = float(r)
 		r2 = float(r2)
-		pred_heatmod = HeatModel2D(N, Nt, None, None, None, None, None,mode,r,r2)
+
+		pred_heatmod = HeatModel2D(N, Nt,0,r,r2)
 		pred_heatmod.check_numerical()
 		T0 = self.heatmod.observations[:,-1].numpy()
-		pred_heatmod.compute_all_T(T0)
+		pred_heatmod.compute_all_T(True,T0)
 		pred_heatmod.generate_animation(self.image_path+'/estimation')
 		
 		T_predict = np.concatenate(pred_heatmod.T_all).reshape(Nt+1,N**2)
@@ -199,9 +214,9 @@ class EnKFmodel():
 		T_all = torch.from_numpy(T_all)
 
 		r = T_predict - T_all
-		R = torch.div(pow(linalg.vector_norm(r,dim=0),2), pow(linalg.vector_norm(T_all,dim=0),2))
+		R = pow(linalg.vector_norm(r,dim=1),2)
 		plt.figure()
-		plt.plot(torch.linspace(0,Nt+1,Nt+2),R.numpy())
+		plt.plot(torch.linspace(0,Nt,Nt+1),R.numpy())
 		plt.ylabel('error')
 		plt.xlabel('time')
 		plt.title('Temperature prediction error')

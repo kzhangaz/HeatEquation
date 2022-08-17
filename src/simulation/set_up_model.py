@@ -11,40 +11,36 @@ from matplotlib.animation import FuncAnimation
 
 class HeatModel2D:
 
-	def __init__(self, N, Nt, mathcal_K, a, b, c, Q_in,mode,r,r2):
+	def __init__(self, N, Nt, mode,r,r2):
 
-		if mode == 0:
-			self.N = N
-			self.Nt = Nt
-			h = 1/(N-1)
-			ht = 1/Nt
-			self.mathcal_K = mathcal_K
-			self.a = a
-			self.b = b
-			self.c = c
-			self.Q_in = Q_in
-			self.r = (mathcal_K*ht)/(a * (h**2))
-			self.r2 = (c*ht)/(a*(h**2))
-			self.T_all = []
-		elif mode == 1:
-			self.N = N
-			self.Nt = Nt
-			h = 1/(N-1)
-			ht = 1/Nt
-			self.r = r
-			self.r2 = r2
-			self.T_all = []
-		else:
-			raise ValueError('mode should be 0/1')
+		if mode!=0 and mode!=1:
+			raise ValueError('mode should choose between 0 and 1!')
+		self.mode = mode
+		self.N = N
+		self.Nt = Nt
+		h = 1/(N-1)
+		ht = 1/Nt
+		self.r = r
+		self.r2 = r2
+		self.T_all = []
 
 	def check_numerical(self):
-		if 1-4*(self.r) <= 0 or 1-3*(self.r)+(self.r2)>=1:
-			raise ValueError("Numerically Not Stable!")
-		else:
-			print("Numerically OK! ;) Preparing for Computation")
-			self.set_matA()
-			self.set_matB()
-			self.set_vecC()
+
+		if self.mode == 0:
+			if 1-4*(self.r) <= 0 or 1-4*(self.r)>=1:
+				raise ValueError("Numerically Not Stable!")
+			if 1-3*(self.r)+(self.r2) <= 0 or 1-3*(self.r)+(self.r2)>=1:
+				raise ValueError("Numerically Not Stable!")
+		elif self.mode == 1:
+			if min(1-4*(self.r)) <= 0 or max(1-4*(self.r))>=1:
+				raise ValueError("Numerically Not Stable!")
+			if min(1-3*(self.r)+(self.r2)) <= 0 or max(1-3*(self.r)+(self.r2))>=1:
+				raise ValueError("Numerically Not Stable!")
+		
+		print("Numerically OK! ;) Preparing for Computation")
+		self.set_matA()
+		self.set_matB()
+		self.set_vecC()
 
 
 	def set_matA(self):
@@ -117,7 +113,7 @@ class HeatModel2D:
 
 		return
 
-	def compute_delta_T(self, T):
+	def compute_delta_T(self, T,k):
 
 		# Create a new sparse PETSc matrix, fill it and then assemble it
 		# l = (self.N)**2
@@ -127,18 +123,22 @@ class HeatModel2D:
 		B = self.B
 		C = self.C
 
+		if self.mode == 1:
+			r,r2 = r[k],r2[k]
+			r,r2 = float(r),float(r2)
+
 		temp = r*A + r2*B
 		delta_T = temp*T + r2*C
 
 		return delta_T
 
 
-	def compute_all_T(self,T0):
+	def compute_all_T(self,customize,T0):
 
 		#initialize
 		N = self.N
 		l = N**2
-		if T0 == None:
+		if customize == False:
 			T = PETSc.Vec().createSeq(l)
 			T.setArray(np.ones(l))
 		else:
@@ -151,7 +151,7 @@ class HeatModel2D:
 		(self.T_all).append(T.array)
 
 		for i in range(self.Nt):
-			T_delta = self.compute_delta_T(T)
+			T_delta = self.compute_delta_T(T,i)
 			T = T + T_delta
 			(self.T_all).append(T.array)
 
@@ -208,7 +208,8 @@ class HeatModel2D:
 		observations = torch.from_numpy(observations)
 		noise = torch.distributions.MultivariateNormal(torch.zeros(self.N**2),gamma).sample(sample_shape=[self.Nt+1])
 		observations = observations + noise
-		self.observations = observations.t()
+		observations = observations.t()
+		self.observations = observations.type(torch.FloatTensor)
 
 		def animate(k):
 		# k from 0 to Nt

@@ -1,8 +1,8 @@
 New record appended:
 Actual Value: 0.192080, 0.000000
 Noise Level: 0.100000
-step size: 0.5
-Intitial Misfit: 58.206112, 7.486882
+Intitial Misfit: -5.448633, -30.441504
 Stopping at 99-th iteration
-Misfit: 0.009765, -0.009677
-E,R : 0.0001,-
+Descrepency: 0.009592, -0.011806
+E,R,M: 0.000146, 0.006433, 0.015212
+Relative Error: 0.049939, -11.806078
